@@ -4,16 +4,91 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f766e" />
-    <meta
-      name="description"
-      content="Offline-first pickleball match manager for fast court-side rounds and stats."
-    />
-    <link rel="manifest" href="/pickleballstats/manifest.webmanifest" />
-    <link rel="icon" href="/pickleballstats/icon.svg" type="image/svg+xml" />
+    <meta name="description" content="Simple offline pickleball match manager." />
+    <link rel="manifest" href="public/manifest.webmanifest" />
+    <link rel="icon" href="public/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
     <title>Pickleball Stats</title>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Pickleball</p>
+        <h1>Match Manager</h1>
+      </div>
+      <button id="themeToggle" class="icon-button" type="button" aria-label="Toggle theme">☾</button>
+    </header>
+
+    <main>
+      <section class="panel hero">
+        <div>
+          <p class="eyebrow">Court ready</p>
+          <h2>Players, rounds, scores, stats.</h2>
+        </div>
+        <div class="hero-actions">
+          <button id="selectAllBtn" type="button">Select active</button>
+          <button id="generateBtn" class="primary" type="button">Generate round</button>
+        </div>
+      </section>
+
+      <section class="metrics">
+        <article><span>Players</span><strong id="playerCount">0</strong></article>
+        <article><span>Selected</span><strong id="selectedCount">0</strong></article>
+        <article><span>Matches</span><strong id="matchCount">0</strong></article>
+      </section>
+
+      <nav class="tabs" aria-label="App sections">
+        <button class="active" type="button" data-tab="players">Players</button>
+        <button type="button" data-tab="round">Round</button>
+        <button type="button" data-tab="stats">Stats</button>
+      </nav>
+
+      <section id="playersTab" class="tab-page active">
+        <form id="playerForm" class="player-form">
+          <input id="playerName" autocomplete="off" placeholder="Player name" required />
+          <input id="playerRating" type="number" min="1" max="6" step="0.1" value="3" aria-label="Rating" />
+          <button class="primary" type="submit">Add</button>
+        </form>
+
+        <details class="panel">
+          <summary>Bulk add</summary>
+          <textarea id="bulkNames" placeholder="One name per line, or comma separated"></textarea>
+          <button id="bulkAddBtn" type="button">Add names</button>
+        </details>
+
+        <div class="toolbar">
+          <input id="searchInput" placeholder="Search players" />
+          <select id="sortSelect" aria-label="Sort players">
+            <option value="activity">Activity</option>
+            <option value="rating">Rating</option>
+            <option value="name">Name</option>
+          </select>
+        </div>
+
+        <div id="playersList" class="cards"></div>
+      </section>
+
+      <section id="roundTab" class="tab-page">
+        <div id="roundInfo" class="panel muted">Generate a round to start.</div>
+        <div id="matchesList" class="cards"></div>
+      </section>
+
+      <section id="statsTab" class="tab-page">
+        <div class="toolbar">
+          <select id="leaderboardSort" aria-label="Leaderboard sort">
+            <option value="winRate">Win rate</option>
+            <option value="rating">Rating</option>
+            <option value="wins">Wins</option>
+            <option value="diff">Point diff</option>
+          </select>
+          <button id="exportBtn" type="button">Export JSON</button>
+        </div>
+        <div id="leaderboard" class="cards"></div>
+        <h2 class="section-title">Match history</h2>
+        <div id="historyList" class="cards"></div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
   </body>
 </html>

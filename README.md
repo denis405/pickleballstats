@@ -1,50 +1,34 @@
 # Pickleball Stats
 
-Offline-first HTML5 web app for managing pickleball players, generating balanced rounds, entering scores courtside, and tracking local statistics.
+Simple client-side HTML5 app for managing pickleball players, generating rounds, entering scores courtside, and tracking local statistics.
 
 ## Features
 
 - Player CRUD, activity toggles, search, sorting, and bulk add
-- Singles, doubles, and rotation-style round generation
-- Matchmaking that scores partner repeats, opponent repeats, rating balance, and rest rotation
+- Doubles round generation with simple rating balance and rest rotation
 - Fast mobile score entry with +1 / -1 controls
-- Undo and redo for player changes, round generation, score changes, and swaps
-- Local persistence through IndexedDB with localStorage fallback
-- Leaderboards, win rate, point differential, streaks, and charted rankings
-- JSON export/import backup
-- PWA setup for installability and offline caching
-- GitHub Pages deployment workflow
+- Local persistence through localStorage
+- Leaderboard, win rate, point differential, rating, and match history
+- JSON export backup
+- No backend, no build step, no npm, no Actions workflow
 
-## Development
+## Files
 
-```bash
-npm install
-npm run dev
-```
+- `index.html` - app markup
+- `styles.css` - responsive mobile-first styles
+- `app.js` - all app logic and storage
+- `public/icon.svg` and `public/manifest.webmanifest` - optional install metadata
 
-## Quality Checks
+## Run
 
-```bash
-npm run lint
-npm test
-npm run test:e2e
-npm run build
-```
+Open `index.html` in a browser.
 
 ## Deploy
 
-GitHub Actions deploys `main` to GitHub Pages. Locally, the build command used by the deploy flow is:
+For GitHub Pages, publish the repository from the `main` branch root. There is no build command.
 
-```bash
-npm run deploy
-```
-
-The Vite base path is configured for:
-
-```text
-https://denis405.github.io/pickleballstats/
-```
+Expected URL: `https://denis405.github.io/pickleballstats/`
 
 ## Storage
 
-All match data stays on the device. The app writes the full state to IndexedDB and keeps a localStorage fallback for recovery if IndexedDB is unavailable.
+All match data stays on the device in `localStorage`.
