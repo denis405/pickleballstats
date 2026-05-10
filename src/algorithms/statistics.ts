@@ -70,6 +70,61 @@ export function getBestPartners(playerId: string, history: MatchHistoryEntry[]):
     .slice(0, 3)
 }
 
+export function getToughestOpponents(
+  playerId: string,
+  history: MatchHistoryEntry[]
+): Array<{ id: string; losses: number }> {
+  const opponents = new Map<string, number>()
+
+  history.forEach((match) => {
+    const onA = match.teamAIds.includes(playerId)
+    const onB = match.teamBIds.includes(playerId)
+    if (!onA && !onB) return
+
+    const lost = (match.winner === 'A' && onB) || (match.winner === 'B' && onA)
+    if (!lost) return
+
+    const opponentIds = onA ? match.teamBIds : match.teamAIds
+    opponentIds.forEach((id) => opponents.set(id, (opponents.get(id) ?? 0) + 1))
+  })
+
+  return [...opponents.entries()]
+    .map(([id, losses]) => ({ id, losses }))
+    .sort((a, b) => b.losses - a.losses)
+    .slice(0, 3)
+}
+
+export function getInteractionCounts(
+  playerIds: string[],
+  history: MatchHistoryEntry[]
+): Array<{ a: string; b: string; partners: number; opponents: number }> {
+  const pairs = new Map<string, { a: string; b: string; partners: number; opponents: number }>()
+
+  function keyFor(a: string, b: string) {
+    return [a, b].sort().join(':')
+  }
+
+  function add(a: string, b: string, field: 'partners' | 'opponents') {
+    if (a === b || !playerIds.includes(a) || !playerIds.includes(b)) return
+    const key = keyFor(a, b)
+    const current = pairs.get(key) ?? { a: key.split(':')[0], b: key.split(':')[1], partners: 0, opponents: 0 }
+    current[field] += 1
+    pairs.set(key, current)
+  }
+
+  history.forEach((match) => {
+    match.teamAIds.forEach((a, index) => {
+      match.teamAIds.slice(index + 1).forEach((b) => add(a, b, 'partners'))
+      match.teamBIds.forEach((b) => add(a, b, 'opponents'))
+    })
+    match.teamBIds.forEach((a, index) => {
+      match.teamBIds.slice(index + 1).forEach((b) => add(a, b, 'partners'))
+    })
+  })
+
+  return [...pairs.values()].sort((a, b) => b.partners + b.opponents - (a.partners + a.opponents))
+}
+
 function calculateStreaks(playerId: string, matches: MatchHistoryEntry[]): { current: number; longest: number } {
   let current = 0
   let longest = 0

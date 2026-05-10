@@ -27,6 +27,7 @@ npm run dev
 ```bash
 npm run lint
 npm test
+npm run test:e2e
 npm run build
 ```
 

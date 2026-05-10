@@ -512,6 +512,79 @@ p {
   font-size: 0.88rem;
 }
 
+.analytics-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.mini-list,
+.heatmap-list,
+.history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.mini-list span,
+.history-list article {
+  display: grid;
+  gap: 3px;
+  min-height: 52px;
+  padding: 10px;
+  background: var(--panel-strong);
+  border-radius: 8px;
+  color: var(--muted);
+}
+
+.mini-list b {
+  color: var(--text);
+}
+
+.subtle-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.heatmap-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(82px, 160px) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 46px;
+}
+
+.heatmap-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heatmap-row div {
+  height: 12px;
+  overflow: hidden;
+  background: var(--panel-strong);
+  border-radius: 999px;
+}
+
+.heatmap-row i {
+  display: block;
+  height: 100%;
+  min-width: 8px;
+  background: var(--primary);
+  border-radius: inherit;
+}
+
+.history-list article {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.history-list span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .bottom-nav {
   position: fixed;
   right: 0;
@@ -576,6 +649,10 @@ p {
   .match-header,
   .score-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .analytics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

@@ -1,7 +1,12 @@
 import { Download, Upload } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { getPlayerStats } from '../algorithms/statistics'
+import {
+  getBestPartners,
+  getInteractionCounts,
+  getPlayerStats,
+  getToughestOpponents
+} from '../algorithms/statistics'
 import { useAppStore } from '../store/appStore'
 import type { LeaderboardMetric } from '../types/domain'
 
@@ -26,6 +31,13 @@ export function StatsPage() {
     wins: player.wins,
     differential: player.pointDifferential
   }))
+  const featuredPlayer = leaderboard[0]
+  const interactions = useMemo(
+    () => getInteractionCounts(state.players.map((player) => player.id), state.history).slice(0, 8),
+    [state.history, state.players]
+  )
+
+  const playerName = (id: string) => state.players.find((player) => player.id === id)?.name ?? 'Unknown'
 
   return (
     <section className="stack">
@@ -70,6 +82,85 @@ export function StatsPage() {
           </article>
         ))}
       </div>
+
+      {featuredPlayer && (
+        <section className="analytics-grid">
+          <article className="section-block">
+            <h2>Best partners</h2>
+            <div className="mini-list">
+              {getBestPartners(featuredPlayer.id, state.history).map((entry) => (
+                <span key={entry.id}>
+                  <b>{playerName(entry.id)}</b>
+                  {entry.wins} wins with {featuredPlayer.name}
+                </span>
+              ))}
+              {getBestPartners(featuredPlayer.id, state.history).length === 0 && (
+                <p className="empty-text">Finish matches to build partner stats.</p>
+              )}
+            </div>
+          </article>
+
+          <article className="section-block">
+            <h2>Toughest opponents</h2>
+            <div className="mini-list">
+              {getToughestOpponents(featuredPlayer.id, state.history).map((entry) => (
+                <span key={entry.id}>
+                  <b>{playerName(entry.id)}</b>
+                  {featuredPlayer.name} lost {entry.losses} time{entry.losses === 1 ? '' : 's'}
+                </span>
+              ))}
+              {getToughestOpponents(featuredPlayer.id, state.history).length === 0 && (
+                <p className="empty-text">No opponent pressure yet.</p>
+              )}
+            </div>
+          </article>
+        </section>
+      )}
+
+      <section className="section-block">
+        <div className="section-heading">
+          <h2>Interaction heatmap</h2>
+          <span className="subtle-label">{state.history.length} finished matches</span>
+        </div>
+        <div className="heatmap-list">
+          {interactions.map((entry) => {
+            const total = entry.partners + entry.opponents
+            return (
+              <div key={`${entry.a}:${entry.b}`} className="heatmap-row">
+                <span>
+                  {playerName(entry.a)} / {playerName(entry.b)}
+                </span>
+                <div aria-label={`${total} interactions`}>
+                  <i style={{ width: `${Math.min(100, total * 16)}%` }} />
+                </div>
+                <b>
+                  {entry.partners}P · {entry.opponents}O
+                </b>
+              </div>
+            )
+          })}
+          {interactions.length === 0 && <p className="empty-text">Finish matches to populate interactions.</p>}
+        </div>
+      </section>
+
+      <section className="section-block">
+        <div className="section-heading">
+          <h2>Match history</h2>
+        </div>
+        <div className="history-list">
+          {[...state.history].reverse().slice(0, 12).map((match) => (
+            <article key={match.id}>
+              <span>
+                {match.teamAIds.map(playerName).join(' / ')} vs {match.teamBIds.map(playerName).join(' / ')}
+              </span>
+              <strong>
+                {match.scoreA}-{match.scoreB}
+              </strong>
+            </article>
+          ))}
+          {state.history.length === 0 && <p className="empty-text">No finished matches yet.</p>}
+        </div>
+      </section>
 
       <section className="section-block">
         <div className="section-heading">

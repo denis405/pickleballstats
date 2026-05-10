@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { applyFinishedMatchStats, getPlayerStats } from '../src/algorithms/statistics'
+import {
+  applyFinishedMatchStats,
+  getBestPartners,
+  getInteractionCounts,
+  getPlayerStats,
+  getToughestOpponents
+} from '../src/algorithms/statistics'
 import type { MatchHistoryEntry, Player } from '../src/types/domain'
 
 const players: Player[] = ['a', 'b', 'c', 'd'].map((id) => ({
@@ -46,5 +52,20 @@ describe('statistics', () => {
     expect(player?.winRate).toBe(100)
     expect(player?.pointDifferential).toBe(4)
     expect(player?.currentStreak).toBe(1)
+  })
+
+  it('calculates interaction analytics', () => {
+    expect(getBestPartners('a', [match])).toEqual([{ id: 'b', wins: 1 }])
+    expect(getToughestOpponents('c', [match])).toEqual([
+      { id: 'a', losses: 1 },
+      { id: 'b', losses: 1 }
+    ])
+    expect(
+      getInteractionCounts(['a', 'b', 'c', 'd'], [match]).find((entry) => entry.a === 'a' && entry.b === 'c')
+    ).toMatchObject({
+      a: 'a',
+      b: 'c',
+      opponents: 1
+    })
   })
 })
