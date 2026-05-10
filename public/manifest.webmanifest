@@ -1,0 +1,19 @@
+{
+  "name": "Pickleball Stats",
+  "short_name": "Pickleball",
+  "description": "Offline-first pickleball match management.",
+  "theme_color": "#0f766e",
+  "background_color": "#f8fafc",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/pickleballstats/",
+  "start_url": "/pickleballstats/",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

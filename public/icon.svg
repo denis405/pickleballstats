@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Pickleball Stats">
+  <rect width="512" height="512" rx="96" fill="#0f766e"/>
+  <circle cx="248" cy="236" r="122" fill="#facc15"/>
+  <circle cx="210" cy="190" r="16" fill="#0f766e"/>
+  <circle cx="274" cy="190" r="16" fill="#0f766e"/>
+  <circle cx="232" cy="248" r="16" fill="#0f766e"/>
+  <circle cx="304" cy="252" r="16" fill="#0f766e"/>
+  <circle cx="196" cy="286" r="16" fill="#0f766e"/>
+  <path d="M330 327l72 72" stroke="#fff" stroke-width="42" stroke-linecap="round"/>
+  <path d="M112 404h178" stroke="#fff" stroke-width="34" stroke-linecap="round"/>
+</svg>
