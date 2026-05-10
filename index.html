@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0f766e" />
     <meta name="description" content="Simple offline pickleball match manager." />
     <link rel="manifest" href="public/manifest.webmanifest" />
@@ -31,6 +31,15 @@
         </div>
       </section>
 
+      <section id="totalScore" class="total-score" aria-live="polite"></section>
+
+      <section class="app-actions" aria-label="App actions">
+        <button id="undoBtn" type="button">Undo</button>
+        <button id="redoBtn" type="button">Redo</button>
+        <button id="shareBtn" type="button">Share</button>
+        <button id="resetBtn" class="danger" type="button">Reset</button>
+      </section>
+
       <section class="metrics">
         <article><span>Players</span><strong id="playerCount">0</strong></article>
         <article><span>Selected</span><strong id="selectedCount">0</strong></article>
@@ -44,6 +53,12 @@
       </nav>
 
       <section id="playersTab" class="tab-page active">
+        <div class="quick-presets" aria-label="Quick player presets">
+          <button type="button" data-preset="2">2 players</button>
+          <button type="button" data-preset="4">4 players</button>
+          <button type="button" data-preset="doubles">Doubles</button>
+        </div>
+
         <form id="playerForm" class="player-form">
           <input id="playerName" autocomplete="off" placeholder="Player name" required />
           <input id="playerRating" type="number" min="1" max="6" step="0.1" value="3" aria-label="Rating" />
@@ -70,6 +85,10 @@
 
       <section id="roundTab" class="tab-page">
         <div id="roundInfo" class="panel muted">Generate a round to start.</div>
+        <div class="round-actions">
+          <button id="quickRoundBtn" type="button">Quick round</button>
+          <button id="duplicateRoundBtn" type="button">Duplicate previous</button>
+        </div>
         <div id="matchesList" class="cards"></div>
       </section>
 
@@ -83,11 +102,27 @@
           </select>
           <button id="exportBtn" type="button">Export JSON</button>
         </div>
+        <input id="importFile" hidden type="file" accept="application/json" />
+        <button id="importBtn" type="button">Import JSON</button>
+        <div id="statsDashboard" class="stats-grid"></div>
         <div id="leaderboard" class="cards"></div>
         <h2 class="section-title">Match history</h2>
         <div id="historyList" class="cards"></div>
+        <h2 class="section-title">Action history</h2>
+        <div id="actionHistory" class="cards"></div>
       </section>
     </main>
+
+    <div id="confirmModal" class="modal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+        <h2 id="resetTitle">Delete all data?</h2>
+        <p>Are you sure you want to delete all players, rounds, scores, and history?</p>
+        <div class="modal-actions">
+          <button id="cancelResetBtn" type="button">Cancel</button>
+          <button id="confirmResetBtn" class="danger" type="button">Delete all data</button>
+        </div>
+      </div>
+    </div>
 
     <script src="app.js"></script>
   </body>
