@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pickleballstats-static-v1'
+const CACHE_NAME = 'pickleballstats-static-v2'
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './public/icon.svg', './public/manifest.webmanifest']
 
 self.addEventListener('install', (event) => {

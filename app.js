@@ -6,11 +6,13 @@ const PRESS_INTERVAL = 90
 
 let state = loadState()
 let activeTab = 'players'
+let liveMatchId = null
 let longPressTimer = null
 let longPressInterval = null
 
 const els = {
   themeToggle: document.querySelector('#themeToggle'),
+  sessionPulse: document.querySelector('#sessionPulse'),
   selectAllBtn: document.querySelector('#selectAllBtn'),
   generateBtn: document.querySelector('#generateBtn'),
   totalScore: document.querySelector('#totalScore'),
@@ -49,6 +51,7 @@ const els = {
 document.documentElement.dataset.theme = state.theme
 bindEvents()
 render()
+document.body.classList.remove('is-loading')
 registerServiceWorker()
 
 function bindEvents() {
@@ -319,24 +322,31 @@ function playerColor(index) {
 
 function setTab(tab) {
   activeTab = tab
+  if (tab !== 'round') exitLiveMode()
   document.querySelectorAll('[data-tab]').forEach((button) => {
     button.classList.toggle('active', button.dataset.tab === tab)
   })
   document.querySelectorAll('.tab-page').forEach((page) => page.classList.remove('active'))
   document.querySelector(`#${tab}Tab`).classList.add('active')
+  renderActiveTab()
 }
 
 function render() {
   renderShell()
-  renderPlayers()
-  renderRound()
-  renderStats()
+  renderActiveTab()
+}
+
+function renderActiveTab() {
+  if (activeTab === 'players') renderPlayers()
+  if (activeTab === 'round') renderRound()
+  if (activeTab === 'stats') renderStats()
 }
 
 function renderShell() {
   const activeRound = state.rounds[0]
   const totalA = activeRound?.matches.reduce((sum, match) => sum + Number(match.scoreA || 0), 0) || 0
   const totalB = activeRound?.matches.reduce((sum, match) => sum + Number(match.scoreB || 0), 0) || 0
+  const pulse = sessionPulse()
 
   els.playerCount.textContent = state.players.length
   els.selectedCount.textContent = state.selected.length
@@ -348,6 +358,9 @@ function renderShell() {
   els.totalScore.innerHTML = activeRound
     ? `<span>${escapeHtml(activeRound.title || 'Current round')}</span><strong>${totalA} - ${totalB}</strong>`
     : '<span>No active round</span><strong>0 - 0</strong>'
+  els.sessionPulse.innerHTML = pulse
+    .map((item) => `<span>${escapeHtml(item)}</span>`)
+    .join('')
 }
 
 function renderPlayers() {
@@ -361,7 +374,8 @@ function renderPlayers() {
       return Number(b.active) - Number(a.active) || b.gamesPlayed - a.gamesPlayed
     })
 
-  els.playersList.innerHTML = players
+  els.playersList.innerHTML = players.length
+    ? players
     .map(
       (player) => `
         <article class="card player-card" draggable="true" data-player-card="${player.id}">
@@ -388,6 +402,13 @@ function renderPlayers() {
       `
     )
     .join('')
+    : emptyState(
+        'Build your court list',
+        state.players.length
+          ? 'No players match this search.'
+          : 'Add four players to unlock balanced doubles rounds and fast score entry.',
+        'Use the presets or add names one by one.'
+      )
 }
 
 function handlePlayerClick(event) {
@@ -503,14 +524,22 @@ function duplicatePreviousRound() {
 
 function renderRound() {
   if (state.rounds.length === 0) {
-    els.roundInfo.textContent = 'Generate a round to start.'
-    els.matchesList.innerHTML = ''
+    els.roundInfo.innerHTML = 'Generate a round to start.'
+    els.matchesList.innerHTML = emptyState(
+      'No round yet',
+      state.selected.length < 4
+        ? 'Select at least four active players to create a doubles round.'
+        : 'Generate a round when players are ready.',
+      'Live mode appears on each match for one-handed scoring.'
+    )
     return
   }
 
   const current = state.rounds[0]
   const restingNames = current.resting.map(playerName).join(', ')
-  els.roundInfo.textContent = restingNames ? `Resting: ${restingNames}` : `${current.matches.length} match(es) ready`
+  els.roundInfo.innerHTML = restingNames
+    ? `<strong>Resting</strong><span>${escapeHtml(restingNames)}</span>`
+    : `<strong>${current.matches.length} match${current.matches.length === 1 ? '' : 'es'} ready</strong><span>Tap Live for courtside scoring.</span>`
 
   els.matchesList.innerHTML = state.rounds
     .map((round, roundIndex) => renderRoundCard(round, roundIndex))
@@ -520,13 +549,15 @@ function renderRound() {
 function renderRoundCard(round, roundIndex) {
   const completed = round.matches.length > 0 && round.matches.every((match) => match.status === 'finished')
   const collapsed = round.collapsed || (completed && roundIndex > 0)
+  const liveRound = liveMatchId && round.matches.some((match) => match.id === liveMatchId)
   return `
-    <section class="round-card ${completed ? 'round-complete' : ''}" data-round-id="${round.id}">
+    <section class="round-card ${completed ? 'round-complete' : ''} ${liveRound ? 'live-round' : ''}" data-round-id="${round.id}">
       <div class="round-head">
         <input class="round-title-input" value="${escapeHtml(round.title || `Round ${state.rounds.length - roundIndex}`)}" data-round-title="${round.id}" aria-label="Round title" />
         <span class="pill">${formatTime(round.createdAt)}</span>
       </div>
       <div class="round-controls">
+        ${liveRound ? `<button type="button" data-action="exit-live">Exit live</button>` : ''}
         <button type="button" data-action="toggle-round" data-round-id="${round.id}">${collapsed ? 'Expand' : 'Collapse'}</button>
         <button type="button" data-action="delete-round" data-round-id="${round.id}">Delete</button>
       </div>
@@ -541,8 +572,9 @@ function renderMatch(roundId, match, index) {
   const teamA = match.teamA.map(playerName).join(' / ')
   const teamB = match.teamB.map(playerName).join(' / ')
   const leading = match.scoreA === match.scoreB ? '' : match.scoreA > match.scoreB ? 'A' : 'B'
+  const isLive = liveMatchId === match.id
   return `
-    <article class="card match-card ${match.status === 'finished' ? 'winner' : ''}" data-match-id="${match.id}" data-round-id="${roundId}">
+    <article class="card match-card ${match.status === 'finished' ? 'winner' : ''} ${isLive ? 'match-live' : ''}" data-match-id="${match.id}" data-round-id="${roundId}">
       <div class="match-head">
         <strong>Match ${index + 1}</strong>
         <span class="pill">${match.status}</span>
@@ -558,6 +590,9 @@ function renderMatch(roundId, match, index) {
           match.scoreA === match.scoreB || match.status === 'finished' ? 'disabled' : ''
         }>Finish</button>
       </div>
+      <button class="live-button" type="button" data-action="${isLive ? 'exit-live' : 'enter-live'}" data-id="${match.id}">
+        ${isLive ? 'Exit live mode' : 'Live scoring'}
+      </button>
     </article>
   `
 }
@@ -592,7 +627,11 @@ function handleRoundClick(event) {
     const match = currentMatch(button.dataset.id)
     if (!match) return
     commit('Match finished', () => finishMatch(match))
+    if (liveMatchId === match.id) exitLiveMode()
   }
+
+  if (action === 'enter-live') enterLiveMode(button.dataset.id)
+  if (action === 'exit-live') exitLiveMode()
 
   if (action === 'toggle-round') {
     commit('Round collapsed', () => {
@@ -639,7 +678,7 @@ function changeScore(matchId, side, delta, label) {
   )
   updateMatchDom(matchId)
   renderShell()
-  renderStats()
+  if (activeTab === 'stats') renderStats()
   vibrate(10)
 }
 
@@ -718,6 +757,8 @@ function updateMatchDom(matchId) {
   if (scoreA && document.activeElement !== scoreA) scoreA.value = match.scoreA
   if (scoreB && document.activeElement !== scoreB) scoreB.value = match.scoreB
   updateFinishButton(matchId)
+  card.classList.toggle('score-leading-a', match.scoreA > match.scoreB)
+  card.classList.toggle('score-leading-b', match.scoreB > match.scoreA)
 }
 
 function updateFinishButton(matchId) {
@@ -785,7 +826,10 @@ function renderStats() {
     <article><span>Worst round</span><strong>${stats.worstRound}</strong></article>
   `
 
-  els.leaderboard.innerHTML = rows
+  els.insightRail.innerHTML = renderInsights(rows)
+
+  els.leaderboard.innerHTML = rows.length
+    ? rows
     .map(
       (player, index) => `
         <article class="card ${index === 0 && player.gamesPlayed ? 'leader-card' : ''}">
@@ -802,8 +846,10 @@ function renderStats() {
       `
     )
     .join('')
+    : emptyState('Stats unlock after setup', 'Add players and finish a match to build a leaderboard.', 'Your best streaks and momentum will appear here.')
 
-  els.historyList.innerHTML = [...state.history]
+  els.historyList.innerHTML = state.history.length
+    ? [...state.history]
     .reverse()
     .slice(0, 20)
     .map(
@@ -815,8 +861,10 @@ function renderStats() {
       `
     )
     .join('')
+    : emptyState('No match history yet', 'Finished matches become a clean session timeline.', 'Use it to remember close games and rematches.')
 
-  els.actionHistory.innerHTML = state.actions
+  els.actionHistory.innerHTML = state.actions.length
+    ? state.actions
     .slice(0, 18)
     .map(
       (action) => `
@@ -827,6 +875,7 @@ function renderStats() {
       `
     )
     .join('')
+    : emptyState('No actions yet', 'Recent edits and scoring moments will show here.', 'Undo stays available when you need it.')
 }
 
 function calculateStats() {
@@ -868,6 +917,83 @@ function streak(playerId) {
     count += 1
   }
   return count
+}
+
+function sessionPulse() {
+  const completedToday = state.history.filter((match) => isToday(match.finishedAt)).length
+  const activePlayers = state.players.filter((player) => player.active).length
+  const topStreak = Math.max(0, ...state.players.map((player) => streak(player.id)))
+  return [
+    `${activePlayers} active`,
+    `${completedToday} today`,
+    topStreak ? `${topStreak} win streak` : 'fresh session'
+  ]
+}
+
+function renderInsights(rows) {
+  const stats = calculateStats()
+  const topPlayer = rows.find((player) => player.gamesPlayed)
+  const comeback = state.history
+    .slice(-12)
+    .reduce((best, match) => Math.max(best, Math.abs(match.scoreA - match.scoreB)), 0)
+  const insights = [
+    {
+      label: 'Momentum',
+      value: topPlayer ? `${topPlayer.name} leads at ${winRate(topPlayer)}%` : 'Waiting for first result'
+    },
+    {
+      label: 'Session pace',
+      value: stats.averageScore === '0' ? 'Score one match to unlock rhythm' : `${stats.averageScore} average points`
+    },
+    {
+      label: 'Achievement',
+      value: comeback >= 6 ? `Biggest swing: ${comeback} points` : `${state.history.length} matches logged`
+    }
+  ]
+
+  return insights
+    .map(
+      (item) => `
+        <article>
+          <span>${escapeHtml(item.label)}</span>
+          <strong>${escapeHtml(item.value)}</strong>
+        </article>
+      `
+    )
+    .join('')
+}
+
+function enterLiveMode(matchId) {
+  liveMatchId = matchId
+  document.body.classList.add('live-mode')
+  renderRound()
+  requestAnimationFrame(() => {
+    els.matchesList.querySelector(`[data-match-id="${matchId}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  })
+}
+
+function exitLiveMode() {
+  if (!liveMatchId) return
+  liveMatchId = null
+  document.body.classList.remove('live-mode')
+  if (activeTab === 'round') renderRound()
+}
+
+function emptyState(title, body, detail = '') {
+  return `
+    <article class="empty-state">
+      <span></span>
+      <strong>${escapeHtml(title)}</strong>
+      <p>${escapeHtml(body)}</p>
+      ${detail ? `<small>${escapeHtml(detail)}</small>` : ''}
+    </article>
+  `
+}
+
+function isToday(value) {
+  const date = new Date(value)
+  const today = new Date()
+  return date.toDateString() === today.toDateString()
 }
 
 function exportState() {

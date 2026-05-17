@@ -10,11 +10,11 @@
     <link rel="stylesheet" href="styles.css" />
     <title>Pickleball Stats</title>
   </head>
-  <body>
+  <body class="is-loading">
     <header class="topbar">
       <div>
         <p class="eyebrow">Pickleball</p>
-        <h1>Match Manager</h1>
+        <h1>Court Companion</h1>
       </div>
       <button id="themeToggle" class="icon-button" type="button" aria-label="Toggle theme">☾</button>
     </header>
@@ -23,7 +23,8 @@
       <section class="panel hero">
         <div>
           <p class="eyebrow">Court ready</p>
-          <h2>Players, rounds, scores, stats.</h2>
+          <h2>Run balanced games, score faster, keep the story of every session.</h2>
+          <div id="sessionPulse" class="session-pulse" aria-live="polite"></div>
         </div>
         <div class="hero-actions">
           <button id="selectAllBtn" type="button">Select active</button>
@@ -104,6 +105,7 @@
         </div>
         <input id="importFile" hidden type="file" accept="application/json" />
         <button id="importBtn" type="button">Import JSON</button>
+        <div id="insightRail" class="insight-rail" aria-live="polite"></div>
         <div id="statsDashboard" class="stats-grid"></div>
         <div id="leaderboard" class="cards"></div>
         <h2 class="section-title">Match history</h2>
