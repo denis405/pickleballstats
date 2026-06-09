@@ -35,16 +35,36 @@
       <section id="totalScore" class="total-score" aria-live="polite"></section>
 
       <section class="app-actions" aria-label="App actions">
-        <button id="undoBtn" type="button">Undo</button>
-        <button id="redoBtn" type="button">Redo</button>
-        <button id="shareBtn" type="button">Share</button>
-        <button id="resetBtn" class="danger" type="button">Reset</button>
+        <button id="resetBtn" class="danger" type="button">Reset all data</button>
       </section>
 
       <section class="metrics">
         <article><span>Players</span><strong id="playerCount">0</strong></article>
         <article><span>Selected</span><strong id="selectedCount">0</strong></article>
         <article><span>Matches</span><strong id="matchCount">0</strong></article>
+      </section>
+
+      <section class="mode-panel panel" aria-labelledby="modeTitle">
+        <div>
+          <p class="eyebrow">Game format</p>
+          <h2 id="modeTitle">Choose how the next round is built</h2>
+        </div>
+        <div class="mode-options" role="radiogroup" aria-label="Game format">
+          <label>
+            <input type="radio" name="gameMode" value="americano" />
+            <span>
+              <strong>Americano</strong>
+              <small>Mix players into balanced courts.</small>
+            </span>
+          </label>
+          <label>
+            <input type="radio" name="gameMode" value="mexicano" />
+            <span>
+              <strong>Mexicano</strong>
+              <small>Group close-ranked players together.</small>
+            </span>
+          </label>
+        </div>
       </section>
 
       <nav class="tabs" aria-label="App sections">
@@ -54,6 +74,10 @@
       </nav>
 
       <section id="playersTab" class="tab-page active">
+        <div class="tab-intro panel">
+          <strong>1. Add players</strong>
+          <span>Select the people playing today. Active and selected players are used for new rounds.</span>
+        </div>
         <div class="quick-presets" aria-label="Quick player presets">
           <button type="button" data-preset="2">2 players</button>
           <button type="button" data-preset="4">4 players</button>
@@ -85,6 +109,10 @@
       </section>
 
       <section id="roundTab" class="tab-page">
+        <div class="tab-intro panel">
+          <strong>2. Generate and score</strong>
+          <span>The selected format controls the next round. Finish a match to update Stats.</span>
+        </div>
         <div id="roundInfo" class="panel muted">Generate a round to start.</div>
         <div class="round-actions">
           <button id="quickRoundBtn" type="button">Quick round</button>
@@ -94,6 +122,10 @@
       </section>
 
       <section id="statsTab" class="tab-page">
+        <div class="tab-intro panel">
+          <strong>3. Track players</strong>
+          <span>Every player appears here, even before their first finished match.</span>
+        </div>
         <div class="toolbar">
           <select id="leaderboardSort" aria-label="Leaderboard sort">
             <option value="winRate">Win rate</option>

@@ -5,15 +5,15 @@ Simple client-side HTML5 app for managing pickleball players, generating rounds,
 ## Features
 
 - Player CRUD, activity toggles, search, sorting, and bulk add
-- Doubles round generation with simple rating balance and rest rotation
+- Americano and Mexicano round generation with simple rating balance and rest rotation
 - Stable mobile score entry with numeric inputs, + / - controls, long-press, and no input re-render while typing
-- Undo / redo with action history
+- Readable action history
 - Full reset with confirmation modal
 - Quick player presets, generated names, avatars, and drag-and-drop player reorder
 - Round titles, timestamps, collapse/delete, duplicate previous round, and quick round
 - Local persistence through localStorage
 - Leaderboard, total score, average score, best/worst round, streaks, point differential, rating, match history, and simple performance sparklines
-- JSON export/import and share state
+- JSON export/import
 - PWA/offline support through a service worker
 - No backend, no build step, no npm, no Actions workflow
 

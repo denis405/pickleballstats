@@ -16,10 +16,8 @@ const els = {
   selectAllBtn: document.querySelector('#selectAllBtn'),
   generateBtn: document.querySelector('#generateBtn'),
   totalScore: document.querySelector('#totalScore'),
-  undoBtn: document.querySelector('#undoBtn'),
-  redoBtn: document.querySelector('#redoBtn'),
-  shareBtn: document.querySelector('#shareBtn'),
   resetBtn: document.querySelector('#resetBtn'),
+  gameModeInputs: [...document.querySelectorAll('[name="gameMode"]')],
   playerCount: document.querySelector('#playerCount'),
   selectedCount: document.querySelector('#selectedCount'),
   matchCount: document.querySelector('#matchCount'),
@@ -36,6 +34,7 @@ const els = {
   roundInfo: document.querySelector('#roundInfo'),
   matchesList: document.querySelector('#matchesList'),
   leaderboardSort: document.querySelector('#leaderboardSort'),
+  insightRail: document.querySelector('#insightRail'),
   statsDashboard: document.querySelector('#statsDashboard'),
   leaderboard: document.querySelector('#leaderboard'),
   historyList: document.querySelector('#historyList'),
@@ -88,8 +87,6 @@ function bindEvents() {
     commit('Previous round duplicated', duplicatePreviousRound)
   })
 
-  els.undoBtn.addEventListener('click', undo)
-  els.redoBtn.addEventListener('click', redo)
   els.resetBtn.addEventListener('click', () => {
     els.confirmModal.hidden = false
     els.cancelResetBtn.focus()
@@ -106,6 +103,14 @@ function bindEvents() {
 
   document.querySelectorAll('[data-preset]').forEach((button) => {
     button.addEventListener('click', () => addPreset(button.dataset.preset))
+  })
+
+  els.gameModeInputs.forEach((input) => {
+    input.addEventListener('change', () => {
+      commit(`Game format changed to ${modeLabel(input.value)}`, () => {
+        state.gameMode = input.value
+      })
+    })
   })
 
   els.playerForm.addEventListener('submit', (event) => {
@@ -146,12 +151,12 @@ function bindEvents() {
   els.exportBtn.addEventListener('click', exportState)
   els.importBtn.addEventListener('click', () => els.importFile.click())
   els.importFile.addEventListener('change', importState)
-  els.shareBtn.addEventListener('click', shareState)
 }
 
 function defaultState() {
   return {
     theme: 'light',
+    gameMode: 'americano',
     players: [],
     selected: [],
     rounds: [],
@@ -173,6 +178,7 @@ function loadState() {
 
 function normalizeState(value) {
   const next = { ...defaultState(), ...value }
+  next.gameMode = next.gameMode === 'mexicano' ? 'mexicano' : 'americano'
   next.players = Array.isArray(next.players) ? next.players : []
   next.selected = Array.isArray(next.selected) ? next.selected : []
   next.rounds = Array.isArray(next.rounds) ? next.rounds : []
@@ -208,6 +214,7 @@ function commit(label, mutator, options = {}) {
 function snapshot() {
   return JSON.stringify({
     theme: state.theme,
+    gameMode: state.gameMode,
     players: state.players,
     selected: state.selected,
     rounds: state.rounds,
@@ -219,6 +226,7 @@ function snapshot() {
 function restore(serialized) {
   const restored = normalizeState(JSON.parse(serialized))
   state.theme = restored.theme
+  state.gameMode = restored.gameMode
   state.players = restored.players
   state.selected = restored.selected
   state.rounds = restored.rounds
@@ -347,14 +355,18 @@ function renderShell() {
   const totalA = activeRound?.matches.reduce((sum, match) => sum + Number(match.scoreA || 0), 0) || 0
   const totalB = activeRound?.matches.reduce((sum, match) => sum + Number(match.scoreB || 0), 0) || 0
   const pulse = sessionPulse()
+  const selectedActiveCount = state.players.filter((player) => player.active && state.selected.includes(player.id)).length
+  const activePlayerCount = state.players.filter((player) => player.active).length
 
   els.playerCount.textContent = state.players.length
   els.selectedCount.textContent = state.selected.length
   els.matchCount.textContent = state.history.length
   els.themeToggle.textContent = state.theme === 'dark' ? '☀' : '☾'
-  els.undoBtn.disabled = state.undoStack.length === 0
-  els.redoBtn.disabled = state.redoStack.length === 0
-  els.generateBtn.disabled = state.selected.length < 4
+  els.generateBtn.disabled = selectedActiveCount < 4
+  els.quickRoundBtn.disabled = activePlayerCount < 4
+  els.gameModeInputs.forEach((input) => {
+    input.checked = input.value === state.gameMode
+  })
   els.totalScore.innerHTML = activeRound
     ? `<span>${escapeHtml(activeRound.title || 'Current round')}</span><strong>${totalA} - ${totalB}</strong>`
     : '<span>No active round</span><strong>0 - 0</strong>'
@@ -471,10 +483,26 @@ function generateRound() {
     .filter((player) => player.active && state.selected.includes(player.id))
     .sort((a, b) => a.gamesPlayed - b.gamesPlayed || b.rating - a.rating)
 
-  const matches = []
+  const builder = state.gameMode === 'mexicano' ? buildMexicanoMatches : buildAmericanoMatches
   const playable = active.slice(0, Math.floor(active.length / 4) * 4)
+  if (playable.length < 4) return
   const resting = active.slice(playable.length)
-  const shuffled = [...playable].sort(() => Math.random() - 0.5)
+  const matches = builder(playable)
+
+  state.rounds.unshift({
+    id: id('round'),
+    title: `${modeLabel(state.gameMode)} ${state.rounds.length + 1}`,
+    mode: state.gameMode,
+    createdAt: new Date().toISOString(),
+    resting: resting.map((player) => player.id),
+    collapsed: false,
+    matches
+  })
+}
+
+function buildAmericanoMatches(players) {
+  const matches = []
+  const shuffled = [...players].sort(() => Math.random() - 0.5)
 
   while (shuffled.length >= 4) {
     const group = shuffled.splice(0, 4).sort((a, b) => b.rating - a.rating)
@@ -488,14 +516,34 @@ function generateRound() {
     })
   }
 
-  state.rounds.unshift({
-    id: id('round'),
-    title: `Round ${state.rounds.length + 1}`,
-    createdAt: new Date().toISOString(),
-    resting: resting.map((player) => player.id),
-    collapsed: false,
-    matches
-  })
+  return matches
+}
+
+function buildMexicanoMatches(players) {
+  const ranked = [...players].sort(compareMexicanoRank)
+  const matches = []
+
+  while (ranked.length >= 4) {
+    const group = ranked.splice(0, 4)
+    matches.push({
+      id: id('match'),
+      teamA: [group[0].id, group[3].id],
+      teamB: [group[1].id, group[2].id],
+      scoreA: 0,
+      scoreB: 0,
+      status: 'pending'
+    })
+  }
+
+  return matches
+}
+
+function compareMexicanoRank(a, b) {
+  return winRate(b) - winRate(a) || pointDiff(b) - pointDiff(a) || b.rating - a.rating || b.gamesPlayed - a.gamesPlayed
+}
+
+function modeLabel(mode) {
+  return mode === 'mexicano' ? 'Mexicano' : 'Americano'
 }
 
 function duplicatePreviousRound() {
@@ -508,6 +556,7 @@ function duplicatePreviousRound() {
   state.rounds.unshift({
     id: id('round'),
     title: `${previous.title || 'Round'} copy`,
+    mode: previous.mode || state.gameMode,
     createdAt: new Date().toISOString(),
     resting: [...previous.resting],
     collapsed: false,
@@ -538,8 +587,8 @@ function renderRound() {
   const current = state.rounds[0]
   const restingNames = current.resting.map(playerName).join(', ')
   els.roundInfo.innerHTML = restingNames
-    ? `<strong>Resting</strong><span>${escapeHtml(restingNames)}</span>`
-    : `<strong>${current.matches.length} match${current.matches.length === 1 ? '' : 'es'} ready</strong><span>Tap Live for courtside scoring.</span>`
+    ? `<strong>${escapeHtml(modeLabel(current.mode))}: resting</strong><span>${escapeHtml(restingNames)}</span>`
+    : `<strong>${escapeHtml(modeLabel(current.mode))}: ${current.matches.length} match${current.matches.length === 1 ? '' : 'es'} ready</strong><span>Tap Live for courtside scoring.</span>`
 
   els.matchesList.innerHTML = state.rounds
     .map((round, roundIndex) => renderRoundCard(round, roundIndex))
@@ -577,7 +626,7 @@ function renderMatch(roundId, match, index) {
     <article class="card match-card ${match.status === 'finished' ? 'winner' : ''} ${isLive ? 'match-live' : ''}" data-match-id="${match.id}" data-round-id="${roundId}">
       <div class="match-head">
         <strong>Match ${index + 1}</strong>
-        <span class="pill">${match.status}</span>
+        <span class="pill">${match.status === 'finished' ? 'Finished' : 'Ready'}</span>
       </div>
       <div class="teams">
         <div class="team ${leading === 'A' ? 'team-leading' : ''}"><span>Team A</span><strong>${escapeHtml(teamA)}</strong></div>
@@ -835,10 +884,10 @@ function renderStats() {
         <article class="card ${index === 0 && player.gamesPlayed ? 'leader-card' : ''}">
           <div class="leader-row">
             <strong>#${index + 1} ${escapeHtml(player.name)}</strong>
-            <span class="pill">${winRate(player)}% WR</span>
+            <span class="pill">${player.gamesPlayed ? `${winRate(player)}% WR` : 'No games yet'}</span>
           </div>
           <div class="card-row">
-            <span>${player.wins}W / ${player.losses}L · streak ${streak(player.id)}</span>
+            <span>${player.gamesPlayed} games · ${player.wins}W / ${player.losses}L · streak ${streak(player.id)}</span>
             <span>${pointDiff(player)} diff · ${player.rating.toFixed(1)} rating</span>
           </div>
           <div class="sparkline" aria-label="Performance over time">${sparkline(player.id)}</div>
@@ -875,7 +924,7 @@ function renderStats() {
       `
     )
     .join('')
-    : emptyState('No actions yet', 'Recent edits and scoring moments will show here.', 'Undo stays available when you need it.')
+    : emptyState('No actions yet', 'Recent edits and scoring moments will show here.', 'This is just a readable log of what happened.')
 }
 
 function calculateStats() {
@@ -1014,23 +1063,6 @@ function importState(event) {
       state = normalizeState(JSON.parse(text))
     })
   })
-}
-
-async function shareState() {
-  const text = JSON.stringify(state)
-  const shareData = {
-    title: 'Pickleball Stats',
-    text,
-    url: location.href
-  }
-  if (navigator.share) {
-    await navigator.share(shareData).catch(() => {})
-  } else {
-    await navigator.clipboard?.writeText(text)
-    addAction('State copied to clipboard')
-    persist()
-    renderStats()
-  }
 }
 
 function playerName(playerId) {
